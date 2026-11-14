@@ -259,7 +259,9 @@
                 
                 <div class="row mb-4">
                     <div class="col-md-8">
-                        <div class="text-primary fw-bold mb-1" style="font-size: 0.85rem; letter-spacing: 0.5px;" id="codigoOrdenServicio">OS-{{ ordenActual?.idCliente || 'NUEVA' }}</div>
+               <div id="codigoOrdenServicio">
+  OS-{{ ordenActual?.ordenRegistrada?.idOrdenServicio || 'NUEVA' }}
+</div>
                         <!-- Se añadió margin-top para separar el título del código -->
                         <h2 class="fw-bold text-white mb-1 mt-2" style="font-size: 1.5rem;" id="nombreOrdenServicio">{{ ordenActual?.nomCliente }} {{ ordenActual?.apeCliente }}</h2>
                         <div class="text-subtitle-light" style="font-size: 0.85rem;" id="fechaOrdenServicio">

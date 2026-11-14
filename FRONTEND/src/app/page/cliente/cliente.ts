@@ -5,7 +5,7 @@ import { RouterLink } from '@angular/router';
 import { ClienteService } from '../../services/cliente.service';
 import { ElectromaticApiService } from '../../services/electromatic-api.service';
 import { timeout, finalize } from 'rxjs/operators';
-
+import { forkJoin } from 'rxjs';
 @Component({
   selector: 'app-cliente',
   standalone: true,
@@ -91,11 +91,76 @@ export class ClienteFormComponent implements OnInit {
     this.registrar();
   }
 
-  verDetalle(orden: any): void {
-    this.ordenActual = { ordenRegistrada: orden, idCliente: orden.idCliente, codigoSeguimiento: orden.codigoSeguimiento };
-    this.vistaActual = 'detalle';
-    this.mensaje = '';
-  }
+
+verDetalle(orden: any): void {
+  this.mensaje = '';
+  this.ordenActual = null;
+
+  forkJoin({
+    clientes: this.api.clientes(),
+    equipos: this.api.equipos()
+  }).subscribe({
+    next: ({ clientes, equipos }) => {
+
+      const listaClientes = clientes as any[];
+      const listaEquipos = equipos as any[];
+
+      // Buscar el cliente relacionado con la orden
+      const cliente = listaClientes.find(
+        c => Number(c.idCliente) === Number(orden.idCliente)
+      );
+
+      // Buscar el equipo relacionado con la orden
+      const equipo = listaEquipos.find(
+        e => Number(e.idEquipo) === Number(orden.idEquipo)
+      );
+
+      if (!cliente) {
+        this.mensaje = 'No se encontraron los datos del cliente.';
+        return;
+      }
+
+      if (!equipo) {
+        this.mensaje = 'No se encontraron los datos del equipo.';
+        return;
+      }
+
+      // Construir el detalle completo
+      this.ordenActual = {
+        ordenRegistrada: orden,
+
+        // Datos del cliente
+        idCliente: cliente.idCliente,
+        nomCliente: cliente.nombreRazonSocial,
+        apeCliente: '',
+        numTel: cliente.telefono,
+        dni: cliente.documento,
+        correo: cliente.correo,
+        direcc: cliente.direccion,
+
+        // Datos del equipo
+        idEquipo: equipo.idEquipo,
+        MARCA: equipo.marca,
+        MODELO: equipo.modelo,
+        NUMERO_SERIE: equipo.numeroSerie,
+        DESCRIPCION: equipo.descripcion,
+
+        // Datos de la orden
+        codigoSeguimiento: orden.codigoSeguimiento
+      };
+
+      this.vistaActual = 'detalle';
+      this.changeDetector.markForCheck();
+
+    },
+    error: error => {
+      console.error('Error al recuperar el detalle:', error);
+      this.mensaje = 'No se pudieron recuperar los datos del cliente y del equipo.';
+      this.changeDetector.markForCheck();
+    }
+  });
+}
+
 
   registrar(): void {
     this.mensaje = '';
