@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style href="../../../styles.css"></style>
+    <style href="./cliente.css"></style>
+</head>
+<body>
+    <header class="workspace-header">
+    <div class="workspace-brand">
+        <div class="brand-mark">E</div>
+        <div>
+            <div class="brand-name">Electromatic</div>
+            <div class="brand-caption">Sistema de órdenes de mantenimiento</div>
+        </div>
+    </div>
+    </header>
+
+<!-- Navegación Superior -->
+<nav class="dashboard-nav">
+    <button class="nav-tab" routerLink="/principal">Inicio</button>
+    <button class="nav-tab active">Cliente</button>
+    <button class="nav-tab" routerLink="/recepcion">Recepción</button>
+    <button class="nav-tab" routerLink="/tecnico">Técnico</button>
+    <button class="nav-tab" routerLink="/administracion">Administración</button>
+    <button class="nav-tab" routerLink="/calidad">Calidad</button>
+    <button class="nav-tab" routerLink="/almacen">Almacén</button>
+</nav>
+
+<!-- Contenido Principal -->
+<main class="dashboard-main">
+    
+    <!-- Cabecera de Sección -->
+    <div class="page-header">
+        <div>
+            <div class="page-breadcrumb">Mantenimiento preventivo y correctivo / Cliente</div>
+            <h1 class="page-title">Cliente</h1>
+            <p class="page-subtitle">Solicita el servicio, consulta tu código y sigue el estado hasta la entrega.</p>
+        </div>
+        
+        <!-- BOTÓN DINÁMICO: Cambia según la vista actual -->
+        @if (vistaActual === 'listado') {
+            <button class="primary-action" (click)="mostrarFormulario()">Solicitar servicio</button>
+        } @else {
+            <button class="btn-outline" (click)="mostrarListado()">Volver al listado</button>
+        }
+    </div>
+
+    <!-- Barra de Progreso (Pasos) - Visible en ambas vistas -->
+    <div class="process-stepper">
+        <div class="process-step"><span class="step-num">01</span> Solicitar servicio</div>
+        <div class="process-step"><span class="step-num">02</span> Código de seguimiento</div>
+        <div class="process-step"><span class="step-num">03</span> Consultar estado</div>
+        <div class="process-step"><span class="step-num">04</span> Recibir equipo</div>
+    </div>
+
+    <!-- Nota - Visible en ambas vistas -->
+    <div class="prototype-note">
+        Prototipo local · Las áreas comparten órdenes, repuestos y documentos en este navegador. Sin envío real de mensajes, compras ni comprobantes fiscales.
+    </div>
+
+    <!-- Pestañas secundarias - Visible en ambas vistas -->
+    <div class="sub-tabs-container">
+        <button class="sub-tab-active" (click)="mostrarListado()">Órdenes de servicio</button>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- VISTA 1: LISTADO DE ÓRDENES                -->
+    <!-- ========================================== -->
+    @if (vistaActual === 'listado') {
+        <div class="vista-listado fade-in">
+            <!-- Tarjetas de Resumen -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3 class="stat-title">Total de órdenes de servicio</h3>
+                    <p class="stat-value" id="clienteTotal">{{ ordenesServidor.length }}</p>
+                </div>
+                <div class="stat-card">
+                    <h3 class="stat-title">En proceso</h3>
+                    <p class="stat-value" id="clienteProceso">{{ ordenesServidor.filter(o => o.idEstadoOrden < 7).length }}</p>
+                </div>
+                <div class="stat-card">
+                    <h3 class="stat-title">Completados</h3>
+                    <p class="stat-value" id="clienteCompletados">{{ ordenesServidor.filter(o => o.idEstadoOrden === 7).length }}</p>
+                </div>
+            </div>
+
+            <!-- Sección de Tabla -->
+            <div class="data-section">
+                <div class="data-header">
+                    <h3>Órdenes de servicio</h3>
+                    <div class="data-filters">
+                        <input type="text" id="buscarOrdenServicio" placeholder="Buscar código, equipo o seguimiento...">
+                        <select>
+                            <option>Todos</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="data-table-wrapper">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Código</th>
+                                <th>Nombre del cliente</th>
+                                <th>Equipo</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @for (orden of ordenesServidor; track orden.idOrdenServicio) {
+                            <tr>
+                                <td class="col-id">
+                                    <div class="id-main">OS-{{ orden.idOrdenServicio }}</div>
+                                    <div class="id-sub">{{ orden.codigoSeguimiento }}</div>
+                                </td>
+                                <td>Cliente #{{ orden.idCliente }}</td>
+                                <td>Equipo #{{ orden.idEquipo }}</td>
+                                <td>Estado #{{ orden.idEstadoOrden }}</td>
+                                <td>
+                                    <button class="btn-outline" (click)="verDetalle(orden)">Ver detalle</button>
+                                </td>
+                            </tr>
+                            } @empty {
+                              <tr><td colspan="5">Todavía no hay órdenes registradas.</td></tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="data-footer">
+                    1 de 1 registros · Información compartida localmente
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- ========================================== -->
+    <!-- VISTA 2: FORMULARIO DE SOLICITUD           -->
+    <!-- ========================================== -->
+    @else if (vistaActual === 'formulario') {
+        <div class="vista-formulario fade-in data-section p-4">
+            <h3 class="mb-3 text-white fw-bold">{{ modoEdicion ? 'Editar orden' : 'Solicitar servicio' }}</h3>
+            <p class="-text-muted mb-4">Los campos con * son obligatorios. Los cambios de etapa se realizan desde el detalle.</p>
+            
+            <!-- FORMULARIO ACTUALIZADO -->
+            <form class="mt-2" [formGroup]="formulario">
+                @if (mensajeTipos) { <div class="alert alert-warning" role="alert">{{ mensajeTipos }}</div> }
+                @if (mensaje) { <div class="alert" [class.alert-success]="exito" [class.alert-danger]="!exito" role="alert">{{ mensaje }}</div> }
+                
+                <!-- SECCIÓN 1: DATOS DEL CLIENTE -->
+                <h5 class="section-title">Datos del Cliente</h5>
+                
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="custom-label">Nombres *</label>
+                        <!-- Campo para NOMCLIENTE -->
+                        <input id="nomCliente" type="text" class="form-control dark-input" placeholder="Ej. Elena" formControlName="nomCliente">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="custom-label">Apellidos *</label>
+                        <!-- Campo para APECLIENTE -->
+                        <input id="apeCliente" type="text" class="form-control dark-input" placeholder="Ej. Vargas" formControlName="apeCliente">
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-3">
+                        <label class="custom-label">DNI / Documento *</label>
+                        <!-- Campo para DNI -->
+                        <input id="dni" type="text" class="form-control dark-input" formControlName="dni">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="custom-label">Teléfono *</label>
+                        <!-- Campo para NUM_TEL -->
+                        <input id="numTel" type="tel" class="form-control dark-input" formControlName="numTel">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="custom-label">Correo electrónico *</label>
+                        <!-- Campo para CORREO -->
+                        <input id="correo" type="email" class="form-control dark-input" formControlName="correo">
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-4">
+                    <div class="col-md-12">
+                        <label class="custom-label">Dirección</label>
+                        <!-- Campo para DIRECC -->
+                        <input id="direcc" type="text" class="form-control dark-input" formControlName="direcc">
+                    </div>
+                </div>
+
+                <!-- SECCIÓN 2: DATOS DEL EQUIPO -->
+                <h5 class="section-title">Datos del Equipo</h5>
+                
+                <div class="row g-3 mb-3">
+                    <div class="col-md-3">
+                        <label class="custom-label">Tipo de equipo</label>
+                        <select id="tipoEquipo" class="form-control dark-input" formControlName="idTipoEquipo">
+                            <option value="">Seleccionar...</option>
+                            @for (tipo of tiposEquipoServidor; track tipo.idTipoEquipo) { <option [value]="tipo.idTipoEquipo">{{ tipo.nombre }}</option> }
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="custom-label">Marca *</label>
+                        <!-- Campo para MARCA -->
+                        <input id="marca" type="text" class="form-control dark-input" placeholder="Ej. Siemens" formControlName="MARCA">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="custom-label">Modelo *</label>
+                        <!-- Campo para MODELO -->
+                        <input id="modelo" type="text" class="form-control dark-input" placeholder="Ej. 1LE1" formControlName="MODELO">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="custom-label">Número de serie</label>
+                        <!-- Campo para NUMERO_SERIE -->
+                        <input id="numeroSerie" type="text" class="form-control dark-input" placeholder="Opcional" formControlName="NUMERO_SERIE">
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-4">
+                    <div class="col-md-12">
+                        <label class="custom-label">Descripción del problema / Motivo *</label>
+                        <!-- Campo para DESCRIPCION -->
+                        <textarea id="descripcion" class="form-control dark-input" rows="3" placeholder="Detalle los síntomas o requerimientos del mantenimiento..." formControlName="DESCRIPCION"></textarea>
+                    </div>
+                </div>
+
+                <!-- ACCIONES -->
+                <div class="d-flex justify-content-end gap-3 mt-4 pt-3 border-top border-dark-custom">
+                    <button id="btnCancelarOrdenServicio" type="button" class="btn-outline" (click)="mostrarListado()">Cancelar</button>
+                    <button id="btnGuardarOrdenServicio"
+                            type="button"
+                            class="primary-action"
+                            [disabled]="guardando"
+                            (click)="registrar()">
+                            {{ guardando ? 'Guardando...' : 'Guardar orden' }}
+                            </button>
+                </div>
+            </form>
+        </div>
+    }
+    <!-- ========================================== -->
+    <!-- VISTA 3: DETALLE DE ORDEN CREADA           -->
+    <!-- ========================================== -->
+    @if (vistaActual === 'detalle') {
+        <div class="vista-detalle fade-in mt-3">
+            
+            <!-- Alerta de éxito -->
+            <div class="alert-custom-success mb-3 d-flex align-items-center">
+                {{ mensaje || 'Registro completado.' }}
+            </div>
+
+            <!-- Tarjeta de Detalles (Se forzó display block y width 100% para evitar colapsos) -->
+            <div class="p-4 bg-surface border border-dark-custom rounded-3 w-100 d-block">
+                
+                <div class="row mb-4">
+                    <div class="col-md-8">
+                        <div class="text-primary fw-bold mb-1" style="font-size: 0.85rem; letter-spacing: 0.5px;" id="codigoOrdenServicio">OS-{{ ordenActual?.idCliente || 'NUEVA' }}</div>
+                        <!-- Se añadió margin-top para separar el título del código -->
+                        <h2 class="fw-bold text-white mb-1 mt-2" style="font-size: 1.5rem;" id="nombreOrdenServicio">{{ ordenActual?.nomCliente }} {{ ordenActual?.apeCliente }}</h2>
+                        <div class="text-subtitle-light" style="font-size: 0.85rem;" id="fechaOrdenServicio">
+                            {{ ordenActual?.fecReg || 'Registro guardado' }}
+                        </div>
+                    </div>
+                    <div class="col-md-4 d-flex justify-content-md-end justify-content-start align-items-start gap-2 mt-3 mt-md-0">
+                        <button class="btn-action-dark" id="editarOrdenServicio" type="button" (click)="editarOrden()">Editar</button>
+                        <button class="btn-action-dark" id="eliminarOrdenServicio" type="button" (click)="confirmarEliminacion()">Desactivar cliente</button>
+                    </div>
+                </div>
+
+                <!-- Caja Oscura: Código de Seguimiento (Se aseguró w-100 y position-relative) -->
+                <div class="tracking-box p-4 mb-4 rounded-3 border border-dark-custom w-100 d-block position-relative">
+                    <div class="text-subtitle-light mb-2 text-uppercase" style="font-size: 0.7rem; letter-spacing: 0.5px;">
+                        CÓDIGO DE SEGUIMIENTO · PREASIGNADO; CONFIRMAR AL RECIBIR
+                    </div>
+                    <div class="text-primary fw-bold mb-2" style="font-size: 1.5rem;" id="codigoSeguimiento">
+                        {{ ordenActual?.ordenRegistrada?.codigoSeguimiento || ordenActual?.codigoSeguimiento || 'Sin orden asociada' }}
+                    </div>
+                    <div class="text-subtitle-light" style="font-size: 0.85rem;" >
+                        Consulta este código en Cliente para revisar el estado y la guía.
+                    </div>
+                </div>
+
+                <!-- Cuadrícula de Datos Ingresados -->
+                <div class="row g-4 mb-5">
+                    <div class="col-md-4">
+                        <div class="detail-label">Nombre del cliente</div>
+                        <div class="text-white mt-1" style="font-size: 0.95rem;" id="nombreCliente">{{ ordenActual?.nomCliente }} {{ ordenActual?.apeCliente }}</div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="detail-label">Teléfono</div>
+                        <div class="text-white mt-1" style="font-size: 0.95rem;" id="telefonoCliente">{{ ordenActual?.numTel }}</div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="detail-label">Equipo</div>
+                        <div class="text-white mt-1" style="font-size: 0.95rem;" id="equipoCliente">{{ ordenActual?.MARCA }} {{ ordenActual?.MODELO }}</div>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <div class="detail-label">Número de serie</div>
+                        <div class="text-white mt-1" style="font-size: 0.95rem;" id="numeroSerieCliente">{{ ordenActual?.NUMERO_SERIE }}</div>
+                    </div>
+                    <div class="col-md-8">
+                        <div class="detail-label">Motivo de la solicitud</div>
+                        <div class="text-white mt-1" style="font-size: 0.95rem;" id="motivoSolicitud">{{ ordenActual?.DESCRIPCION }}</div>
+                    </div>
+                </div>
+
+                <!-- Footer de la tarjeta -->
+                <div class="text-subtitle-light pt-2" style="font-size: 0.85rem;">
+                    Documentos vinculados: 0 requerimientos · 0 comprobantes · 0 garantías.
+                </div>
+                
+            </div>
+        </div>
+    }
+    <!-- ========================================== -->
+    <!-- VISTA 4: CONFIRMAR ELIMINACIÓN             -->
+    <!-- ========================================== -->
+    @else if (vistaActual === 'eliminar') {
+        <div class="vista-eliminar fade-in mt-4">
+            
+            <!-- Tarjeta de Confirmación de Eliminación -->
+            <div class="p-4 bg-surface border border-dark-custom rounded-3" style="max-width: 700px;">
+                
+                <div class="text-primary fw-bold mb-3 text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.5px;">
+                    Confirmación requerida
+                </div>
+                
+                <h2 class="text-white fw-bold mb-3">¿Eliminar orden?</h2>
+                
+                <!-- El código se puede volver dinámico usando {{ ordenActual?.codigo || 'OS-MWE6TSEQ-IA7' }} si tienes esa propiedad -->
+                <p class="text-subtitle-light mb-4" style="font-size: 0.9rem; line-height: 1.5;">
+                    Se eliminará OS-MWE6TSEQ-IA7. Esta acción no se puede deshacer. No se eliminarán registros con movimientos o documentos que deban conservarse como respaldo.
+                </p>
+                
+                <div class="d-flex gap-3">
+                    <button type="button" class="btn-outline" (click)="cancelarEliminacion()">Cancelar</button>
+                    <!-- Botón blanco para confirmar -->
+                    <button type="button" class="btn bg-white text-dark fw-bold px-4 border-0 rounded-2" (click)="eliminarOrden()">Confirmar desactivación</button>
+                </div>
+                
+            </div>
+            
+        </div>
+    }
+</main>
+</body>
+</html>
